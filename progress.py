@@ -24,11 +24,16 @@ def get_process_date():
         last_date = datetime.datetime.strptime(dates[-2], "%Y%m%d") + datetime.timedelta(days=1)
         date = last_date.strftime('%Y%m%d')
 
+    filename = 'data/AAPL' + date + '.csv'
     np_raw_csv_file_names = np.array(raw_csv_file_names)
-    not_processed_raw_files = np_raw_csv_file_names[np_raw_csv_file_names >= 'data/AAPL' + date + '.csv']
+    not_processed_raw_files = np_raw_csv_file_names[np_raw_csv_file_names >= filename]
 
     if np.size(not_processed_raw_files) == 0:
         sys.exit('Nothing to process')
+
+    if filename not in not_processed_raw_files:
+        save_processed_date(date)
+        date = get_process_date()
 
     return date
 

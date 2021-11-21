@@ -135,19 +135,40 @@ def get_d(num_layers, num_price_levels, minutes_per_day, full_d_asks, full_d_bid
     d = create_zeros_array(num_layers, num_price_levels, minutes_per_day)
 
     for t_index in range(0, minutes_per_day):
-        lowest_ask_price = min(
-            np.where(full_d_asks[1, :, t_index] > 0)[0][0],
-            np.where(full_d_asks[2, :, t_index] > 0)[0][0],
-            np.where(full_d_asks[3, :, t_index] > 0)[0][0],
-            np.where(full_d_asks[4, :, t_index] > 0)[0][0],
-        )
+        lowest_ask_prices = []
+        ordered_asks = np.where(full_d_asks[1, :, t_index] > 0)
+        filled_asks = np.where(full_d_asks[2, :, t_index] > 0)
+        canceled_asks = np.where(full_d_asks[3, :, t_index] > 0)
+        pending_asks = np.where(full_d_asks[4, :, t_index] > 0)
 
-        highest_bid_price = max(
-            np.where(full_d_bids[1, :, t_index] > 0)[0][0],
-            np.where(full_d_bids[2, :, t_index] > 0)[0][0],
-            np.where(full_d_bids[3, :, t_index] > 0)[0][0],
-            np.where(full_d_bids[4, :, t_index] > 0)[0][0],
-        )
+        if np.any(ordered_asks):
+            lowest_ask_prices.append(ordered_asks[0][0])
+        if np.any(filled_asks):
+            lowest_ask_prices.append(filled_asks[0][0])
+        if np.any(canceled_asks):
+            lowest_ask_prices.append(canceled_asks[0][0])
+        if np.any(pending_asks):
+            lowest_ask_prices.append(pending_asks[0][0])
+
+        lowest_ask_price = min(lowest_ask_prices)
+
+
+        highest_bid_prices = []
+        ordered_bids = np.where(full_d_bids[1, :, t_index] > 0)
+        filled_bids = np.where(full_d_bids[2, :, t_index] > 0)
+        canceled_bids = np.where(full_d_bids[3, :, t_index] > 0)
+        pending_bids = np.where(full_d_bids[4, :, t_index] > 0)
+
+        if np.any(ordered_bids):
+            highest_bid_prices.append(ordered_bids[0][0])
+        if np.any(filled_bids):
+            highest_bid_prices.append(filled_bids[0][0])
+        if np.any(canceled_bids):
+            highest_bid_prices.append(canceled_bids[0][0])
+        if np.any(pending_bids):
+            highest_bid_prices.append(pending_bids[0][0])
+
+        highest_bid_price = max(highest_bid_prices)
 
         for l_index in range(0, num_layers):
             d[l_index, 0:20, t_index] = np.flip(full_d_asks[l_index, lowest_ask_price:lowest_ask_price + 20, t_index])
