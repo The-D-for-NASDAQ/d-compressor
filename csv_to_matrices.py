@@ -170,9 +170,11 @@ def get_d(num_layers, num_price_levels, minutes_per_day, full_d_asks, full_d_bid
 
         highest_bid_price = max(highest_bid_prices)
 
-        for l_index in range(0, num_layers):
+        for l_index in range(0, num_layers - 1):
             d[l_index, 0:20, t_index] = np.flip(full_d_asks[l_index, lowest_ask_price:lowest_ask_price + 20, t_index])
             d[l_index, 20:40, t_index] = np.flip(
                 full_d_bids[l_index, highest_bid_price - 20:highest_bid_price, t_index])
+
+        d[num_layers - 1, :, t_index] = t_index
 
     return d
