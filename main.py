@@ -19,7 +19,7 @@ d_minutes_per_day = int(6.5 * 60)  # 6 hours 30 minutes of data per trading sess
 
 
 def main(date):
-    csv_data_path = os.path.normcase('data/AAPL' + date + '.csv')
+    csv_data_path = os.path.normcase('data/unprocessed/AAPL' + date + '.csv')
     records = csv_to_matrices.load_csv_file(csv_data_path)
 
     full_d_asks = csv_to_matrices.process_side_records('ASK', floor_price_round, side_num_layers, side_num_price_levels,
