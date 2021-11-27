@@ -8,7 +8,8 @@ compress_progress_file_name = 'compress_progress.txt'
 
 
 def get_process_date():
-    raw_csv_file_names = sorted(glob.glob(os.path.join('', 'data/AAPL*.csv')))
+    raw_csv_file_names_path = os.path.normcase('data/AAPL*.csv')
+    raw_csv_file_names = sorted(glob.glob(raw_csv_file_names_path))
 
     if not raw_csv_file_names:
         sys.exit('Missing csv files to process')
@@ -24,7 +25,7 @@ def get_process_date():
         last_date = datetime.datetime.strptime(dates[-2], "%Y%m%d") + datetime.timedelta(days=1)
         date = last_date.strftime('%Y%m%d')
 
-    filename = 'data/AAPL' + date + '.csv'
+    filename = os.path.normcase('data/AAPL' + date + '.csv')
     np_raw_csv_file_names = np.array(raw_csv_file_names)
     not_processed_raw_files = np_raw_csv_file_names[np_raw_csv_file_names >= filename]
 
