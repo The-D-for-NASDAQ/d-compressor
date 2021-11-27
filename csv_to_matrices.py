@@ -54,81 +54,107 @@ def process_delete_records(r, full_d):
 
 
 def process_side_records(side, floor_price_round, num_layers, num_price_levels, minutes_per_day, records):
+    side_matrices = create_zeros_array(num_layers, num_price_levels, minutes_per_day)
+
+    side_matrices = fill_matrices_price_level(side_matrices, num_price_levels, minutes_per_day, floor_price_round)
+
     full_d_records = records \
         .loc[records['price_level'] < num_price_levels] \
         .loc[records['time_index'] < minutes_per_day]
 
-    side_matrices = create_zeros_array(num_layers, num_price_levels, minutes_per_day)
+    side_matrices = process_simple_side_records(side, side_matrices, full_d_records)
+    side_matrices = process_complex_side_records(side, side_matrices, full_d_records)
 
+    side_matrices = process_pending_matrices_layer(side_matrices, minutes_per_day, num_price_levels)
+
+    return side_matrices
+
+
+def fill_matrices_price_level(matrices, num_price_levels, minutes_per_day, floor_price_round):
     incrementer = 0
     for d_price_index in range(0, num_price_levels):
         for time_index in range(0, minutes_per_day):
-            side_matrices[0, d_price_index, time_index] = incrementer
+            matrices[0, d_price_index, time_index] = incrementer
         incrementer += floor_price_round
 
+    return matrices
+
+
+def process_simple_side_records(side, side_matrices, full_d_records):
     full_d_price_records = full_d_records.loc[full_d_records['Price'] != 0]
 
+    # ADD
     full_d_price_records \
         .loc[full_d_price_records['EventType'] == 'ADD ' + side] \
         .apply(process_add_record, full_d=side_matrices, axis=1)
 
     side_matrices[4] = side_matrices[1]
 
+    # TRADE
     full_d_price_records \
         .loc[full_d_price_records['EventType'] == 'TRADE ' + side] \
         .apply(process_trade_records, full_d=side_matrices, axis=1)
 
+    # EXECUTE
     full_d_price_records \
         .loc[full_d_price_records['EventType'] == 'EXECUTE ' + side] \
         .apply(process_execute_price_records, full_d=side_matrices, axis=1)
 
+    return side_matrices
 
+
+def process_complex_side_records(side, side_matrices, full_d_records):
     full_d_priceless_records = full_d_records.loc[full_d_records['Price'] == 0]
     add_asks = full_d_records.loc[full_d_records['EventType'] == 'ADD ' + side].set_index('OrderNumber')
 
+    # FILL
     fill_asks = full_d_priceless_records.loc[full_d_priceless_records['EventType'] == 'FILL ' + side].set_index('OrderNumber')
     full_fill_asks = fill_asks.join(add_asks, on='OrderNumber', how='left', lsuffix='_fill', rsuffix='_add')
+    full_fill_asks['price_level_add'] = np.int32(full_fill_asks['price_level_add'])  # after join right table has wrong column types
     full_fill_asks \
         .loc[full_fill_asks['time_index_fill'] >= full_fill_asks['time_index_add']] \
         .apply(process_fill_records, full_d=side_matrices, axis=1)
 
-    execute_asks = full_d_priceless_records.loc[full_d_priceless_records['EventType'] == 'EXECUTE ' + side].set_index(
-        'OrderNumber')
+    # EXECUTE
+    execute_asks = full_d_priceless_records.loc[full_d_priceless_records['EventType'] == 'EXECUTE ' + side].set_index('OrderNumber')
     full_execute_asks = execute_asks.join(add_asks, on='OrderNumber', how='left', lsuffix='_execute', rsuffix='_add')
+    full_execute_asks['price_level_add'] = np.int32(full_execute_asks['price_level_add'])  # after join right table has wrong column types
     full_execute_asks \
         .loc[full_execute_asks['time_index_execute'] >= full_execute_asks['time_index_add']] \
         .apply(process_execute_priceless_records, full_d=side_matrices, axis=1)
 
-    cancel_asks = full_d_priceless_records.loc[full_d_priceless_records['EventType'] == 'CANCEL ' + side].set_index(
-        'OrderNumber')
+    # CANCEL
+    cancel_asks = full_d_priceless_records.loc[full_d_priceless_records['EventType'] == 'CANCEL ' + side].set_index('OrderNumber')
     full_cancel_asks = cancel_asks.join(add_asks, on='OrderNumber', how='left', lsuffix='_cancel', rsuffix='_add')
+    full_cancel_asks['price_level_add'] = np.int32(full_cancel_asks['price_level_add'])  # after join right table has wrong column types
     full_cancel_asks \
         .loc[full_cancel_asks['time_index_cancel'] >= full_cancel_asks['time_index_add']] \
         .apply(process_cancel_records, full_d=side_matrices, axis=1)
 
-
-    delete_asks = full_d_priceless_records.loc[full_d_priceless_records['EventType'] == 'DELETE ' + side].set_index(
-        'OrderNumber')
+    # DELETE
+    delete_asks = full_d_priceless_records.loc[full_d_priceless_records['EventType'] == 'DELETE ' + side].set_index('OrderNumber')
     full_delete_asks = delete_asks.join(add_asks, on='OrderNumber', how='left', lsuffix='_delete', rsuffix='_add')
-    full_delete_asks['price_level_add'] = np.int32(
-        full_delete_asks['price_level_add'])  # after join right table has wrong column types
+    full_delete_asks['price_level_add'] = np.int32(full_delete_asks['price_level_add'])  # after join right table has wrong column types
     full_delete_asks \
         .loc[full_delete_asks['time_index_delete'] >= full_delete_asks['time_index_add']] \
         .apply(process_delete_records, full_d=side_matrices, axis=1)
 
+    return side_matrices
 
+
+def process_pending_matrices_layer(matrices, minutes_per_day, num_price_levels):
     for t_index in range(0, minutes_per_day):
         for p_index in range(0, num_price_levels):
-            side_matrices[4, p_index, t_index] = \
-                side_matrices[4, p_index, t_index - 1 if t_index - 1 > 0 else 0] \
-                + side_matrices[1, p_index, t_index] \
-                - side_matrices[2, p_index, t_index] \
-                - side_matrices[3, p_index, t_index]
+            matrices[4, p_index, t_index] = \
+                matrices[4, p_index, t_index - 1 if t_index - 1 > 0 else 0] \
+                + matrices[1, p_index, t_index] \
+                - matrices[2, p_index, t_index] \
+                - matrices[3, p_index, t_index]
 
-            if side_matrices[4, p_index, t_index] < 0:
-                side_matrices[4, p_index, t_index] = 0
+            if matrices[4, p_index, t_index] < 0:
+                matrices[4, p_index, t_index] = 0
 
-    return side_matrices
+    return matrices
 
 
 def get_d(num_layers, num_price_levels, minutes_per_day, full_d_asks, full_d_bids):
