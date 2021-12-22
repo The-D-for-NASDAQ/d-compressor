@@ -6,13 +6,13 @@ def load_csv_file(filename):
     raw_columns = ['Date', 'Timestamp', 'OrderNumber', 'EventType', 'Price', 'Quantity', 'Exchange']
     records = pd.read_csv(filename, usecols=raw_columns)
 
-    records['OrderNumber'] = records['Exchange'] + records['OrderNumber'].astype(str)
+    records = records[records['Exchange'] == 'NASDAQ']
 
     records['DateTime'] = records['Date'].apply(str) + ' ' + records['Timestamp']
     records['DateTime'] = pd.to_datetime(records['DateTime'], format='%Y%m%d %H:%M:%S.%f')
     records['Timestamp'] = records['DateTime'].values.astype(np.int64) // 10 ** 9
 
-    start_day_timestamp = int(records['DateTime'][0].timestamp())
+    start_day_timestamp = int(records['DateTime'].iloc[0].timestamp())
     records['time_index'] = np.int32((records['Timestamp'] - start_day_timestamp) / 60)  # index per minute
 
     records['price_level'] = np.int32(records['Price'] * 2)  # index per minute
