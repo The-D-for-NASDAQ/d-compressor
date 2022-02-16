@@ -105,11 +105,11 @@ def process_simple_side_records(side, side_matrices, full_d_records):
 
 def process_complex_side_records(side, side_matrices, full_d_records):
     full_d_priceless_records = full_d_records.loc[full_d_records['Price'] == 0]
-    add_asks = full_d_records.loc[full_d_records['EventType'] == 'ADD ' + side].set_index('OrderNumber')
+    add_records = full_d_records.loc[full_d_records['EventType'] == 'ADD ' + side].set_index('OrderNumber')
 
     # FILL
     fill_asks = full_d_priceless_records.loc[full_d_priceless_records['EventType'] == 'FILL ' + side].set_index('OrderNumber')
-    full_fill_asks = fill_asks.join(add_asks, on='OrderNumber', how='left', lsuffix='_fill', rsuffix='_add')
+    full_fill_asks = fill_asks.join(add_records, on='OrderNumber', how='left', lsuffix='_fill', rsuffix='_add')
     full_fill_asks['price_level_add'] = np.int32(full_fill_asks['price_level_add'])  # after join right table has wrong column types
     full_fill_asks \
         .loc[full_fill_asks['time_index_fill'] >= full_fill_asks['time_index_add']] \
@@ -117,7 +117,7 @@ def process_complex_side_records(side, side_matrices, full_d_records):
 
     # EXECUTE
     execute_asks = full_d_priceless_records.loc[full_d_priceless_records['EventType'] == 'EXECUTE ' + side].set_index('OrderNumber')
-    full_execute_asks = execute_asks.join(add_asks, on='OrderNumber', how='left', lsuffix='_execute', rsuffix='_add')
+    full_execute_asks = execute_asks.join(add_records, on='OrderNumber', how='left', lsuffix='_execute', rsuffix='_add')
     full_execute_asks['price_level_add'] = np.int32(full_execute_asks['price_level_add'])  # after join right table has wrong column types
     full_execute_asks \
         .loc[full_execute_asks['time_index_execute'] >= full_execute_asks['time_index_add']] \
@@ -125,7 +125,7 @@ def process_complex_side_records(side, side_matrices, full_d_records):
 
     # CANCEL
     cancel_asks = full_d_priceless_records.loc[full_d_priceless_records['EventType'] == 'CANCEL ' + side].set_index('OrderNumber')
-    full_cancel_asks = cancel_asks.join(add_asks, on='OrderNumber', how='left', lsuffix='_cancel', rsuffix='_add')
+    full_cancel_asks = cancel_asks.join(add_records, on='OrderNumber', how='left', lsuffix='_cancel', rsuffix='_add')
     full_cancel_asks['price_level_add'] = np.int32(full_cancel_asks['price_level_add'])  # after join right table has wrong column types
     full_cancel_asks \
         .loc[full_cancel_asks['time_index_cancel'] >= full_cancel_asks['time_index_add']] \
@@ -133,7 +133,7 @@ def process_complex_side_records(side, side_matrices, full_d_records):
 
     # DELETE
     delete_asks = full_d_priceless_records.loc[full_d_priceless_records['EventType'] == 'DELETE ' + side].set_index('OrderNumber')
-    full_delete_asks = delete_asks.join(add_asks, on='OrderNumber', how='left', lsuffix='_delete', rsuffix='_add')
+    full_delete_asks = delete_asks.join(add_records, on='OrderNumber', how='left', lsuffix='_delete', rsuffix='_add')
     full_delete_asks['price_level_add'] = np.int32(full_delete_asks['price_level_add'])  # after join right table has wrong column types
     full_delete_asks \
         .loc[full_delete_asks['time_index_delete'] >= full_delete_asks['time_index_add']] \
