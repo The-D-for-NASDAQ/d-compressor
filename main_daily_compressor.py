@@ -12,7 +12,6 @@ floor_price_round = 2 / (2 * 2)  # 0.5
 side_num_layers = 5  # Price, Ordered volume, Filled volume, Canceled volume, Pending volume
 side_num_price_levels = 500 * 2  # price level ($500), 50 cents per level (*2)
 side_minutes_per_day = 16 * 60  # 960, 16 hours of data per day, from 4:00 to 20:00
-side_start_trading_session_index = int(5.5 * 60)  # 330, from 4:00 to 9:30
 
 d_num_layers = 6  # Price, Ordered volume, Filled volume, Canceled volume, Pending volume, Time index
 d_num_price_levels = 10 * 2 * 2  # price level ($10) per 50 cents per level (*2) per side (*2)
@@ -28,8 +27,7 @@ def main(date):
     full_d_bids = compressor.process_side_records('BID', floor_price_round, side_num_layers, side_num_price_levels,
                                                   side_minutes_per_day, records)[:, :, 330:720]
 
-    d = compressor.get_d(d_num_layers, d_num_price_levels, d_minutes_per_day, full_d_asks, full_d_bids,
-                         side_start_trading_session_index)
+    d = compressor.get_d(d_num_layers, d_num_price_levels, d_minutes_per_day, full_d_asks, full_d_bids)
 
     npy_data_path = os.path.join('data', 'processed', 'AAPL' + date + '.npy')
     np.save(npy_data_path, d)

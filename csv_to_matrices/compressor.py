@@ -58,7 +58,7 @@ def process_side_records(side, floor_price_round, num_layers, num_price_levels, 
 
     side_matrices = fill_matrices_price_level(side_matrices, num_price_levels, minutes_per_day, floor_price_round)
 
-    full_d_records = records.loc[records['price_level'] < num_price_levels]
+    full_d_records = records.loc[records['price_level'] < num_price_levels].loc[records['time_index'] < minutes_per_day]
 
     side_matrices = process_simple_side_records(side, side_matrices, full_d_records)
     side_matrices = process_complex_side_records(side, side_matrices, full_d_records)
@@ -155,17 +155,15 @@ def process_pending_matrices_layer(matrices, minutes_per_day, num_price_levels):
     return matrices
 
 
-def get_d(num_layers, num_price_levels, minutes_per_day, full_d_asks, full_d_bids, side_start_trading_session_index):
+def get_d(num_layers, num_price_levels, minutes_per_day, full_d_asks, full_d_bids):
     d = create_zeros_array(num_layers, num_price_levels, minutes_per_day)
 
-    for d_t_index in range(0, minutes_per_day):
-        records_t_index = d_t_index + side_start_trading_session_index
-
+    for t_index in range(0, minutes_per_day):
         lowest_ask_prices = []
-        ordered_asks = np.where(full_d_asks[1, :, records_t_index] > 0)
-        filled_asks = np.where(full_d_asks[2, :, records_t_index] > 0)
-        canceled_asks = np.where(full_d_asks[3, :, records_t_index] > 0)
-        pending_asks = np.where(full_d_asks[4, :, records_t_index] > 0)
+        ordered_asks = np.where(full_d_asks[1, :, t_index] > 0)
+        filled_asks = np.where(full_d_asks[2, :, t_index] > 0)
+        canceled_asks = np.where(full_d_asks[3, :, t_index] > 0)
+        pending_asks = np.where(full_d_asks[4, :, t_index] > 0)
 
         if np.any(ordered_asks):
             lowest_ask_prices.append(ordered_asks[0][0])
@@ -180,10 +178,10 @@ def get_d(num_layers, num_price_levels, minutes_per_day, full_d_asks, full_d_bid
 
 
         highest_bid_prices = []
-        ordered_bids = np.where(full_d_bids[1, :, records_t_index] > 0)
-        filled_bids = np.where(full_d_bids[2, :, records_t_index] > 0)
-        canceled_bids = np.where(full_d_bids[3, :, records_t_index] > 0)
-        pending_bids = np.where(full_d_bids[4, :, records_t_index] > 0)
+        ordered_bids = np.where(full_d_bids[1, :, t_index] > 0)
+        filled_bids = np.where(full_d_bids[2, :, t_index] > 0)
+        canceled_bids = np.where(full_d_bids[3, :, t_index] > 0)
+        pending_bids = np.where(full_d_bids[4, :, t_index] > 0)
 
         if np.any(ordered_bids):
             highest_bid_prices.append(ordered_bids[0][0])
@@ -199,13 +197,13 @@ def get_d(num_layers, num_price_levels, minutes_per_day, full_d_asks, full_d_bid
         for l_index in range(0, num_layers - 1):
             # if lowest ask price missing, price slice will be from 0 to 20
             # if highest bid price missing, price slice will be from (max) - 20 to (max)
-            d[l_index, 0:20, d_t_index] = np.flip(full_d_asks[l_index, lowest_ask_price:lowest_ask_price + 20, records_t_index])
+            d[l_index, 0:20, t_index] = np.flip(full_d_asks[l_index, lowest_ask_price:lowest_ask_price + 20, t_index])
 
             if highest_bid_price - 20 < 0:
                 highest_bid_price = -1
 
-            d[l_index, 20:40, d_t_index] = np.flip(full_d_bids[l_index, highest_bid_price - 20:highest_bid_price, records_t_index])
+            d[l_index, 20:40, t_index] = np.flip(full_d_bids[l_index, highest_bid_price - 20:highest_bid_price, t_index])
 
-        d[num_layers - 1, :, d_t_index] = d_t_index
+        d[num_layers - 1, :, t_index] = t_index
 
     return d

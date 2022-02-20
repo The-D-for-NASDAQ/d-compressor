@@ -45,12 +45,12 @@ def process_minute(date):
         return
 
     records = compressor.load_csv_file(csv_data_path)
-    records_t_index = records['time_index'].iloc[0]  # time_index same for all records
+    t_index = records['time_index'].iloc[0]  # time_index same for all records
 
-    full_d_asks = compressor_by_minutes.process_side_records('ASK', side_num_price_levels, records,
-                                                             previous_add_records, asks_matrices, records_t_index)
-    full_d_bids = compressor_by_minutes.process_side_records('BID', side_num_price_levels, records,
-                                                             previous_add_records, bids_matrices, records_t_index)
+    full_d_asks = compressor_by_minutes.process_side_records('ASK', side_num_price_levels, records, previous_add_records,
+                                                             asks_matrices, t_index)[:, :, 330:720]  # trading session hours
+    full_d_bids = compressor_by_minutes.process_side_records('BID', side_num_price_levels, records, previous_add_records,
+                                                             bids_matrices, t_index)[:, :, 330:720]
 
     # TODO: exclude add records by delete records
 
@@ -64,8 +64,7 @@ def process_minute(date):
             .loc[records['price_level'] < side_num_price_levels]
     ))
 
-    d = compressor_by_minutes.get_t_index_from_d(d_num_layers, d_num_price_levels, full_d_asks, full_d_bids,
-                                                 records_t_index, side_start_trading_session_index)
+    d = compressor_by_minutes.get_t_index_from_d(d_num_layers, d_num_price_levels, full_d_asks, full_d_bids, t_index)
 
     return d
 
