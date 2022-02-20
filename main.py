@@ -47,10 +47,10 @@ def process_minute(date):
     records = compressor.load_csv_file(csv_data_path)
     records_t_index = records['time_index'].iloc[0]  # time_index same for all records
 
-    full_d_asks = compressor_by_minutes.process_side_records('ASK', side_num_price_levels,
-                                                             records, previous_add_records, asks_matrices, records_t_index)
-    full_d_bids = compressor_by_minutes.process_side_records('BID', side_num_price_levels,
-                                                             records, previous_add_records, bids_matrices, records_t_index)
+    full_d_asks = compressor_by_minutes.process_side_records('ASK', side_num_price_levels, records,
+                                                             previous_add_records, asks_matrices, records_t_index)
+    full_d_bids = compressor_by_minutes.process_side_records('BID', side_num_price_levels, records,
+                                                             previous_add_records, bids_matrices, records_t_index)
 
     # TODO: exclude add records by delete records
 
@@ -95,4 +95,6 @@ def main(date_to_process):
 
         send_processed_date_to_predictor(date_to_process)
 
-    print('At: ' + str(datetime.now(tz=date_to_process.tzinfo)) + ' | Processed date: ' + str(date_to_process) + ' | Processing time: ' + str(datetime.now() - begin_time))
+    print('At: ' + str(datetime.now(tz=date_to_process.tzinfo)) +
+          ' | Processed date: ' + str(date_to_process) +
+          ' | Processing time: ' + str(datetime.now() - begin_time))
