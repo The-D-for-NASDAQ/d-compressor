@@ -10,5 +10,6 @@ def callback(ch, method, props, body):
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
 channel = connection.channel()
 channel.queue_declare(queue='compressor')
+# TODO: set proper auto_ack to do not miss unprocessed events
 channel.basic_consume(queue='compressor', on_message_callback=callback, auto_ack=True)
 channel.start_consuming()
