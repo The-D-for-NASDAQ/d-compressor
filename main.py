@@ -38,7 +38,7 @@ bids_matrices = compressor.fill_matrices_price_level(bids_matrices, side_num_pri
 
 
 def process_minute(date):
-    global previous_add_records
+    global previous_add_records, asks_matrices, bids_matrices
 
     csv_data_path = os.path.join('..', 'd-converter', 'data', date.strftime('%Y%m%d'), 'AAPL', date.strftime('%H%M') + '.csv')
     if not os.path.exists(csv_data_path):
@@ -47,13 +47,15 @@ def process_minute(date):
     records = compressor.load_csv_file(csv_data_path)
     t_index = records['time_index'].iloc[0]  # time_index same for all records
 
-    full_d_asks = compressor_by_minutes.process_side_records('ASK', side_num_price_levels, records, previous_add_records,
-                                                             asks_matrices, t_index)[:, :, 330:720]  # trading session hours
-    full_d_bids = compressor_by_minutes.process_side_records('BID', side_num_price_levels, records, previous_add_records,
-                                                             bids_matrices, t_index)[:, :, 330:720]
+    asks_matrices = compressor_by_minutes.process_side_records('ASK', side_num_price_levels, records, previous_add_records,
+                                                               asks_matrices, t_index)
+    bids_matrices = compressor_by_minutes.process_side_records('BID', side_num_price_levels, records, previous_add_records,
+                                                               bids_matrices, t_index)
+
+    if t_index < side_start_trading_session_index:  # update _matrices but do not create empty d file
+        return
 
     # TODO: exclude add records by delete records
-
     previous_add_records = pd.concat((
         previous_add_records,
         records
@@ -64,7 +66,13 @@ def process_minute(date):
             .loc[records['price_level'] < side_num_price_levels]
     ))
 
-    d = compressor_by_minutes.get_t_index_from_d(d_num_layers, d_num_price_levels, full_d_asks, full_d_bids, t_index)
+    d = compressor_by_minutes.get_t_index_from_d(
+        d_num_layers,
+        d_num_price_levels,
+        asks_matrices[:, :, side_start_trading_session_index:side_start_trading_session_index + d_minutes_per_day],  # trading session hours
+        bids_matrices[:, :, side_start_trading_session_index:side_start_trading_session_index + d_minutes_per_day],
+        t_index - side_start_trading_session_index
+    )
 
     return d
 
