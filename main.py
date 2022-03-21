@@ -52,9 +52,6 @@ def process_minute(date):
     bids_matrices = compressor_by_minutes.process_side_records('BID', side_num_price_levels, records, previous_add_records,
                                                                bids_matrices, t_index)
 
-    if t_index < side_start_trading_session_index:  # update _matrices but do not create empty d file
-        return
-
     # TODO: exclude add records by delete records
     previous_add_records = pd.concat((
         previous_add_records,
@@ -65,6 +62,9 @@ def process_minute(date):
             .loc[records['EventType'] == 'ADD BID']
             .loc[records['price_level'] < side_num_price_levels]
     ))
+
+    if t_index < side_start_trading_session_index:  # update _matrices and previous add orders but do not create empty d file
+        return
 
     d = compressor_by_minutes.get_t_index_from_d(
         d_num_layers,
