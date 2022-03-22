@@ -40,6 +40,8 @@ def process_complex_side_records(side, side_matrices, full_d_records, previous_a
 
 
 def process_pending_matrices_layer(matrices, t_index, num_price_levels):
+    matrices[4, :, t_index] = matrices[1, :, t_index]
+
     for p_index in range(0, num_price_levels):
         matrices[4, p_index, t_index] = \
             matrices[4, p_index, t_index - 1 if t_index - 1 > 0 else 0] \

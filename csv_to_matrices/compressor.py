@@ -86,8 +86,6 @@ def process_simple_side_records(side, side_matrices, full_d_records):
         .loc[full_d_price_records['EventType'] == 'ADD ' + side] \
         .apply(process_add_record, full_d=side_matrices, axis=1)
 
-    side_matrices[4] = side_matrices[1]
-
     # TRADE
     full_d_price_records \
         .loc[full_d_price_records['EventType'] == 'TRADE ' + side] \
@@ -141,6 +139,8 @@ def process_complex_side_records(side, side_matrices, full_d_records):
 
 
 def process_pending_matrices_layer(matrices, minutes_per_day, num_price_levels):
+    matrices[4] = matrices[1]
+
     for t_index in range(0, minutes_per_day):
         for p_index in range(0, num_price_levels):
             matrices[4, p_index, t_index] = \

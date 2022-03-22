@@ -36,16 +36,27 @@ bids_matrices = compressor.create_zeros_array(side_num_layers, side_num_price_le
 bids_matrices = compressor.fill_matrices_price_level(bids_matrices, side_num_price_levels, side_minutes_per_day,
                                                      floor_price_round)
 
+last_processed_t_index = None
+
 
 def process_minute(date):
-    global previous_add_records, asks_matrices, bids_matrices
+    global previous_add_records, asks_matrices, bids_matrices, last_processed_t_index
 
     csv_data_path = os.path.join('..', 'd-converter', 'data', date.strftime('%Y%m%d'), 'AAPL', date.strftime('%H%M') + '.csv')
     if not os.path.exists(csv_data_path):
+        if last_processed_t_index is not None:  # if processing were started
+            last_processed_t_index += 1
+            t_index = last_processed_t_index
+
+            # pending layer should be updated every time index
+            asks_matrices = compressor_by_minutes.process_pending_matrices_layer(asks_matrices, t_index, side_num_price_levels)
+            bids_matrices = compressor_by_minutes.process_pending_matrices_layer(bids_matrices, t_index, side_num_price_levels)
+
         return
 
     records = compressor.load_csv_file(csv_data_path)
     t_index = records['time_index'].iloc[0]  # time_index same for all records
+    last_processed_t_index = t_index
 
     asks_matrices = compressor_by_minutes.process_side_records('ASK', side_num_price_levels, records, previous_add_records,
                                                                asks_matrices, t_index)
